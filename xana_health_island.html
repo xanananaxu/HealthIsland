@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Xana 健康岛 🌿</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Noto+Sans+SC:wght@400;500;700&display=swap');
+:root {
+  --sand:#F5E6C8;--sand2:#EDD9A3;--green:#4CAF6F;--green2:#3D9E5F;--green-light:#A8D5A2;
+  --sky:#87CEEB;--sky2:#B8E4F7;--coral:#FF8C69;--coral2:#FF6B47;--yellow:#FFD166;
+  --yellow2:#FFC233;--mint:#C8E6C9;--brown:#8B6914;--brown2:#6B4F10;
+  --white:#FFFDF5;--text:#3D2B0A;--text2:#6B4F10;--shadow:rgba(61,43,10,0.15);
+  --radius:18px;--radius-sm:11px;
+
+  /* 心率区间颜色 */
+  --z1:#60C8FF;   /* 区间1 极低/热身 蓝 */
+  --z2:#2EE8B4;   /* 区间2 偏低/有氧 青绿 */
+  --z3:#B8F040;   /* 区间3 适中/脂肪燃烧 黄绿 */
+  --z4:#FFB020;   /* 区间4 偏高/无氧 橙 */
+  --z5:#FF4F6A;   /* 区间5 极高/冲刺 红 */
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans SC',sans-serif;background:linear-gradient(180deg,#C8E6F7 0%,#D4EED4 40%,#E8F5E2 100%);min-height:100vh;padding:14px;overflow-x:hidden;}
+body::before{content:'';position:fixed;top:0;left:0;right:0;bottom:0;background-image:radial-gradient(ellipse 90px 55px at 8% 7%,rgba(255,255,255,.7) 0%,transparent 100%),radial-gradient(ellipse 70px 45px at 35% 4%,rgba(255,255,255,.6) 0%,transparent 100%),radial-gradient(ellipse 110px 65px at 68% 9%,rgba(255,255,255,.65) 0%,transparent 100%),radial-gradient(ellipse 75px 48px at 92% 5%,rgba(255,255,255,.6) 0%,transparent 100%);pointer-events:none;z-index:0;}
+.wrap{max-width:1120px;margin:0 auto;position:relative;z-index:1;}
+
+/* ── NAV ── */
+.nav{display:flex;gap:10px;margin-bottom:16px;justify-content:center;}
+.nav-btn{font-family:'Nunito',sans-serif;font-weight:800;font-size:13px;padding:9px 20px;border-radius:30px;border:2.5px solid rgba(255,255,255,.8);background:rgba(255,255,255,.6);color:var(--brown);cursor:pointer;box-shadow:0 3px 0 var(--sand2),0 5px 12px var(--shadow);transition:all .2s;backdrop-filter:blur(4px);}
+.nav-btn:hover{transform:translateY(-2px);}
+.nav-btn.active{background:var(--green);color:#fff;border-color:var(--green2);box-shadow:0 3px 0 var(--green2),0 5px 12px var(--shadow);}
+
+/* ── PAGE ── */
+.page{display:none;animation:fadeIn .3s ease;}
+.page.active{display:block;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── HEADER ── */
+.hdr{text-align:center;margin-bottom:14px;}
+.hdr-title{font-family:'Nunito',sans-serif;font-weight:900;font-size:clamp(20px,3.5vw,32px);color:var(--brown);text-shadow:2px 3px 0 rgba(255,255,255,.8);}
+.hdr-sub{font-size:12px;color:var(--text2);margin-top:3px;font-weight:500;}
+.date-pill{display:inline-flex;align-items:center;gap:5px;background:var(--green);color:#fff;border-radius:20px;padding:3px 12px;font-size:11px;font-weight:700;box-shadow:0 2px 0 var(--green2);margin:8px 0 12px;}
+
+/* ── ENCOURAGE ── */
+.enc{background:linear-gradient(135deg,var(--yellow),var(--yellow2));border-radius:var(--radius);padding:11px 18px;margin-bottom:14px;display:flex;align-items:center;gap:10px;box-shadow:0 4px 0 #c89010,0 6px 14px var(--shadow);border:2.5px solid rgba(255,255,255,.6);animation:floatB 3.5s ease-in-out infinite;}
+@keyframes floatB{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+.enc-txt{font-family:'Nunito',sans-serif;font-weight:800;font-size:13px;color:var(--brown);flex:1;transition:opacity .4s;}
+
+/* ── CARD ── */
+.card{background:var(--white);border-radius:var(--radius);padding:15px;box-shadow:0 4px 0 var(--sand2),0 6px 18px var(--shadow);border:2.5px solid rgba(255,255,255,.9);position:relative;overflow:hidden;}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;border-radius:var(--radius) var(--radius) 0 0;}
+.cg::before{background:linear-gradient(90deg,var(--green),var(--green-light));}
+.cc::before{background:linear-gradient(90deg,var(--coral),var(--yellow));}
+.cs::before{background:linear-gradient(90deg,var(--sky),var(--sky2));}
+.cy::before{background:linear-gradient(90deg,var(--yellow),var(--coral));}
+.cp::before{background:linear-gradient(90deg,#c084fc,#e879f9);}
+.card-title{font-family:'Nunito',sans-serif;font-weight:800;font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;display:flex;align-items:center;gap:5px;}
+
+/* ── GRID HELPERS ── */
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:13px;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:13px;}
+.g2l{display:grid;grid-template-columns:2fr 1fr;gap:13px;}
+.gap{display:flex;flex-direction:column;gap:13px;}
+.row{display:flex;gap:13px;}
+@media(max-width:780px){.g3{grid-template-columns:1fr 1fr;}.g2l{grid-template-columns:1fr;}.row{flex-direction:column;}}
+@media(max-width:500px){.g3{grid-template-columns:1fr;}.g2{grid-template-columns:1fr;}}
+
+/* ── HERO METRIC ── */
+.hm{background:var(--white);border-radius:var(--radius);padding:16px;box-shadow:0 4px 0 var(--sand2),0 6px 18px var(--shadow);border:2.5px solid rgba(255,255,255,.9);text-align:center;position:relative;overflow:hidden;transition:transform .2s;}
+.hm:hover{transform:translateY(-3px);}
+.hm::before{content:'';position:absolute;top:0;left:0;right:0;height:5px;border-radius:var(--radius) var(--radius) 0 0;}
+.hw::before{background:linear-gradient(90deg,#4CAF6F,#A8D5A2);}
+.hf::before{background:linear-gradient(90deg,#FF8C69,#FFD166);}
+.hmu::before{background:linear-gradient(90deg,#87CEEB,#B8E4F7);}
+.m-em{font-size:26px;margin-bottom:5px;display:block;}
+.m-lbl{font-size:10px;color:var(--text2);font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:3px;}
+.m-val{font-family:'Nunito',sans-serif;font-weight:900;font-size:clamp(24px,4vw,36px);color:var(--text);line-height:1;}
+.m-unit{font-size:13px;font-weight:700;color:var(--text2);}
+.m-tgt{font-size:10px;color:var(--text2);margin-top:5px;background:var(--mint);border-radius:20px;padding:2px 9px;display:inline-block;font-weight:600;}
+.m-chg{font-size:11px;font-weight:700;margin-top:4px;padding:2px 8px;border-radius:20px;display:inline-block;}
+.dn{background:rgba(76,175,111,.15);color:var(--green2);}
+.up{background:rgba(255,140,105,.15);color:var(--coral2);}
+.neu{background:rgba(135,206,235,.2);color:#4a90b8;}
+
+/* ── MINI STAT ── */
+.ms{background:rgba(200,230,201,.35);border-radius:var(--radius-sm);padding:9px;border:1.5px solid rgba(255,255,255,.8);text-align:center;}
+.ms-ic{font-size:15px;margin-bottom:2px;display:block;}
+.ms-v{font-family:'Nunito',sans-serif;font-weight:800;font-size:15px;color:var(--text);}
+.ms-l{font-size:10px;color:var(--text2);font-weight:600;}
+.ms-s{font-size:9px;border-radius:10px;padding:1px 6px;font-weight:700;margin-top:2px;display:inline-block;}
+.sh{background:rgba(255,140,105,.2);color:var(--coral2);}
+.sl{background:rgba(135,206,235,.3);color:#4a90b8;}
+.sok{background:rgba(76,175,111,.2);color:var(--green2);}
+
+/* ── AGE CIRCLE ── */
+.age-c{width:76px;height:76px;border-radius:50%;background:linear-gradient(135deg,var(--coral),var(--yellow));display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0 auto 7px;box-shadow:0 4px 0 var(--coral2),0 6px 14px var(--shadow);border:3px solid rgba(255,255,255,.8);}
+.age-n{font-family:'Nunito',sans-serif;font-weight:900;font-size:26px;color:#fff;line-height:1;text-shadow:1px 2px 4px rgba(0,0,0,.2);}
+.age-ls{font-size:9px;color:rgba(255,255,255,.9);font-weight:700;}
+
+/* ── STAMP ── */
+.stamps{display:flex;gap:7px;flex-wrap:wrap;}
+.stamp{background:linear-gradient(135deg,var(--yellow),var(--coral));border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:17px;box-shadow:0 2px 0 var(--coral2),0 4px 8px var(--shadow);border:2px solid rgba(255,255,255,.7);animation:sb .5s ease backwards;}
+.stamp:nth-child(1){animation-delay:.1s}.stamp:nth-child(2){animation-delay:.2s}.stamp:nth-child(3){animation-delay:.3s}.stamp:nth-child(4){animation-delay:.4s}
+@keyframes sb{0%{transform:scale(0) rotate(-20deg);opacity:0}70%{transform:scale(1.2) rotate(5deg)}100%{transform:scale(1) rotate(0);opacity:1}}
+
+/* ── LEGEND ── */
+.legend{display:flex;gap:10px;flex-wrap:wrap;margin-top:7px;}
+.leg-i{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2);font-weight:600;}
+.leg-d{width:10px;height:10px;border-radius:50%;}
+
+/* ── SEGMENT BAR ── */
+.seg-i{background:rgba(200,230,201,.3);border-radius:var(--radius-sm);padding:7px 9px;border:1.5px solid rgba(255,255,255,.7);}
+.seg-l{font-size:10px;color:var(--text2);font-weight:600;margin-bottom:3px;}
+.seg-bw{display:flex;align-items:center;gap:5px;}
+.seg-bg{flex:1;height:6px;background:rgba(61,43,10,.1);border-radius:3px;overflow:hidden;}
+.seg-f{height:100%;border-radius:3px;}
+.sm{background:linear-gradient(90deg,var(--sky),#6bb8e8);}
+.sf{background:linear-gradient(90deg,var(--coral),var(--yellow));}
+.seg-v{font-size:9px;font-weight:700;color:var(--text);white-space:nowrap;}
+
+/* ── TARGET ── */
+.tgt-i{text-align:center;background:rgba(200,230,201,.3);border-radius:var(--radius-sm);padding:9px 5px;border:1.5px solid rgba(255,255,255,.7);}
+.tgt-ic{font-size:18px;display:block;margin-bottom:3px;}
+.tgt-v{font-family:'Nunito',sans-serif;font-weight:900;font-size:17px;color:var(--text);}
+.tgt-l{font-size:10px;color:var(--text2);font-weight:600;margin-top:1px;}
+
+/* ── EX BAR ── */
+.ex-b{margin-bottom:7px;}
+.ex-lr{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;}
+.ex-lbl{font-size:12px;font-weight:600;color:var(--text);}
+.ex-vl{font-size:12px;font-weight:800;color:var(--text2);font-family:'Nunito',sans-serif;}
+.ex-bg{height:9px;background:rgba(61,43,10,.08);border-radius:5px;overflow:hidden;}
+.ex-fi{height:100%;border-radius:5px;}
+.ea{background:linear-gradient(90deg,var(--green),var(--green-light));}
+.ee{background:linear-gradient(90deg,var(--sky),var(--sky2));}
+
+/* ── HISTORY PAGE ── */
+.hist-svg-wrap{width:100%;overflow:hidden;}
+.no-data{text-align:center;padding:40px 20px;color:var(--text2);font-size:13px;font-weight:600;}
+.hist-table{width:100%;border-collapse:collapse;font-size:12px;}
+.hist-table th{background:rgba(76,175,111,.15);color:var(--text2);font-weight:700;padding:7px 10px;text-align:left;font-size:11px;}
+.hist-table td{padding:7px 10px;border-bottom:1px solid rgba(61,43,10,.06);color:var(--text);}
+.hist-table tr:hover td{background:rgba(200,230,201,.2);}
+
+/* ── EXERCISE PAGE ── */
+.zone-legend{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin-bottom:12px;}
+.zl-item{border-radius:var(--radius-sm);padding:8px 6px;text-align:center;border:2px solid rgba(255,255,255,.7);}
+.zl-dot{width:14px;height:14px;border-radius:50%;margin:0 auto 4px;}
+.zl-num{font-family:'Nunito',sans-serif;font-weight:900;font-size:13px;}
+.zl-range{font-size:9px;color:var(--text2);font-weight:600;margin-top:1px;}
+.zl-name{font-size:9px;font-weight:700;margin-top:2px;}
+
+.zone-bar-item{margin-bottom:10px;}
+.zone-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:3px;}
+.zone-label{font-size:12px;font-weight:700;width:54px;flex-shrink:0;}
+.zone-time{font-size:11px;font-weight:700;color:var(--text2);width:46px;flex-shrink:0;font-family:'Nunito',sans-serif;}
+.zone-bg{flex:1;height:12px;background:rgba(61,43,10,.08);border-radius:6px;overflow:hidden;}
+.zone-fill{height:100%;border-radius:6px;transition:width 1s ease;}
+.zone-bpm{font-size:10px;color:var(--text2);font-weight:600;}
+
+.lap-table{width:100%;border-collapse:collapse;font-size:12px;}
+.lap-table th{background:rgba(76,175,111,.15);color:var(--text2);font-weight:700;padding:7px 10px;text-align:center;font-size:11px;}
+.lap-table td{padding:8px 10px;border-bottom:1px solid rgba(61,43,10,.06);text-align:center;color:var(--text);font-family:'Nunito',sans-serif;font-weight:700;}
+.lap-table tr:hover td{background:rgba(200,230,201,.2);}
+
+.ex-hero{text-align:center;}
+.ex-hero-val{font-family:'Nunito',sans-serif;font-weight:900;font-size:clamp(22px,3.5vw,32px);color:var(--text);line-height:1;}
+.ex-hero-unit{font-size:12px;font-weight:700;color:var(--text2);}
+.ex-hero-lbl{font-size:10px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-top:3px;}
+
+.diff-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(192,132,252,.2);border:1.5px solid rgba(192,132,252,.4);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700;color:#7c3aed;}
+.diff-num{font-family:'Nunito',sans-serif;font-weight:900;font-size:18px;color:#7c3aed;}
+
+/* Heart rate color bar */
+.hr-bar-wrap{width:100%;height:16px;border-radius:8px;overflow:hidden;display:flex;margin:6px 0;}
+.hr-seg{height:100%;transition:width .8s ease;}
+
+@media(max-width:600px){.zone-legend{grid-template-columns:repeat(3,1fr);}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- HEADER -->
+<div class="hdr">
+  <div style="font-size:26px;margin-bottom:4px">🌿🏝️🌿</div>
+  <div class="hdr-title">Xana 的健康岛</div>
+  <div class="hdr-sub">记录每一步 · 数据见证成长</div>
+</div>
+
+<!-- NAV -->
+<div class="nav">
+  <button class="nav-btn active" onclick="switchPage('p1',this)">📊 最新体况</button>
+  <button class="nav-btn" onclick="switchPage('p2',this)">📈 历史趋势</button>
+  <button class="nav-btn" onclick="switchPage('p3',this)">🏃 运动记录</button>
+</div>
+
+<!-- ENCOURAGE -->
+<div class="enc">
+  <span style="font-size:20px">🌱</span>
+  <span class="enc-txt" id="encTxt">你已经迈出了最重要的一步——开始记录！数据会成为你最诚实的朋友。</span>
+  <span style="font-size:20px">✨</span>
+</div>
+
+<!-- ════════════ PAGE 1：最新体况 ════════════ -->
+<div class="page active" id="p1">
+  <div style="text-align:center"><span class="date-pill">📅 最新测量：2026年5月17日</span></div>
+
+  <!-- Hero 3 -->
+  <div class="g3" style="margin-bottom:13px">
+    <div class="hm hw">
+      <span class="m-em">⚖️</span>
+      <div class="m-lbl">体重</div>
+      <div class="m-val">72.2<span class="m-unit">kg</span></div>
+      <div class="m-tgt">目标 56.4kg</div>
+      <div class="m-chg neu" id="wChg">首次精确记录 📍</div>
+    </div>
+    <div class="hm hf">
+      <span class="m-em">🔥</span>
+      <div class="m-lbl">体脂率</div>
+      <div class="m-val">45.6<span class="m-unit">%</span></div>
+      <div class="m-tgt">需减脂 16.0kg</div>
+      <div class="m-chg neu" id="fChg">首次精确记录 📍</div>
+    </div>
+    <div class="hm hmu">
+      <span class="m-em">💪</span>
+      <div class="m-lbl">肌肉率</div>
+      <div class="m-val">31.1<span class="m-unit">%</span></div>
+      <div class="m-tgt">需增肌 5.3kg</div>
+      <div class="m-chg neu" id="mChg">首次精确记录 📍</div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- 左列 -->
+    <div class="gap" style="flex:2">
+
+      <!-- 其他指标 6格 -->
+      <div class="card cs">
+        <div class="card-title">📊 详细指标</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+          <div class="ms"><span class="ms-ic">🫀</span><div class="ms-v">16.0</div><div class="ms-l">内脏脂肪</div><div class="ms-s sh">过高</div></div>
+          <div class="ms"><span class="ms-ic">📐</span><div class="ms-v">0.92</div><div class="ms-l">腰臀比</div><div class="ms-s sh">偏高</div></div>
+          <div class="ms"><span class="ms-ic">💧</span><div class="ms-v">38.7%</div><div class="ms-l">水分</div><div class="ms-s sl">偏低</div></div>
+          <div class="ms"><span class="ms-ic">🦴</span><div class="ms-v">3.3kg</div><div class="ms-l">骨量</div><div class="ms-s sok">正常</div></div>
+          <div class="ms"><span class="ms-ic">⚡</span><div class="ms-v">1256</div><div class="ms-l">基础代谢</div><div class="ms-s sok">正常</div></div>
+          <div class="ms"><span class="ms-ic">🥩</span><div class="ms-v">11.1%</div><div class="ms-l">蛋白质</div><div class="ms-s sok">正常</div></div>
+        </div>
+      </div>
+
+      <!-- 节段分析 -->
+      <div class="card cg">
+        <div class="card-title">🗺️ 节段分析</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
+          <div class="seg-i"><div class="seg-l">左上肢</div><div class="seg-bw"><div class="seg-bg"><div class="seg-f sm" style="width:39%"></div></div><div class="seg-v">肌1.8 脂2.8</div></div></div>
+          <div class="seg-i"><div class="seg-l">右上肢</div><div class="seg-bw"><div class="seg-bg"><div class="seg-f sm" style="width:38%"></div></div><div class="seg-v">肌1.8 脂2.9</div></div></div>
+          <div class="seg-i"><div class="seg-l">躯干</div><div class="seg-bw"><div class="seg-bg"><div class="seg-f sf" style="width:74%"></div></div><div class="seg-v">肌17.8 脂13.3</div></div></div>
+          <div class="seg-i"><div class="seg-l">左下肢</div><div class="seg-bw"><div class="seg-bg"><div class="seg-f sm" style="width:53%"></div></div><div class="seg-v">肌6.6 脂5.9</div></div></div>
+          <div class="seg-i"><div class="seg-l">右下肢</div><div class="seg-bw"><div class="seg-bg"><div class="seg-f sm" style="width:53%"></div></div><div class="seg-v">肌6.6 脂5.9</div></div></div>
+          <div class="seg-i" style="background:rgba(255,209,102,.2)"><div class="seg-l">💡重点</div><div style="font-size:10px;color:var(--text2);font-weight:600;line-height:1.5">躯干脂肪13.3kg<br>是减脂主战场</div></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 右列 -->
+    <div class="gap" style="flex:1">
+
+      <!-- 身体年龄 -->
+      <div class="card cc" style="text-align:center">
+        <div class="card-title" style="justify-content:center">🎂 身体年龄</div>
+        <div class="age-c"><div class="age-n">39</div><div class="age-ls">岁</div></div>
+        <div style="font-size:12px;color:var(--text2);font-weight:600">实际年龄 30岁</div>
+        <div style="font-size:11px;background:rgba(255,140,105,.15);color:var(--coral2);border-radius:20px;padding:2px 10px;font-weight:700;margin:5px auto;display:inline-block">+9岁 有进步空间！</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:6px;line-height:1.6">睡眠+运动<br>身体年龄会年轻 💚</div>
+      </div>
+
+      <!-- 三月目标 -->
+      <div class="card cy">
+        <div class="card-title">🎯 三月目标</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:10px">
+          <div class="tgt-i"><span class="tgt-ic">⚖️</span><div class="tgt-v" style="color:var(--coral2)">-10.7</div><div class="tgt-l">减重kg</div></div>
+          <div class="tgt-i"><span class="tgt-ic">🔥</span><div class="tgt-v" style="color:var(--coral2)">-16.0</div><div class="tgt-l">减脂kg</div></div>
+          <div class="tgt-i"><span class="tgt-ic">💪</span><div class="tgt-v" style="color:var(--green2)">+5.3</div><div class="tgt-l">增肌kg</div></div>
+        </div>
+        <div class="ex-b"><div class="ex-lr"><span class="ex-lbl">🏃 有氧燃脂</span><span class="ex-vl">553 kcal</span></div><div class="ex-bg"><div class="ex-fi ea" style="width:80%"></div></div></div>
+        <div class="ex-b"><div class="ex-lr"><span class="ex-lbl">🏋️ 体能耐力</span><span class="ex-vl">138 kcal</span></div><div class="ex-bg"><div class="ex-fi ee" style="width:20%"></div></div></div>
+      </div>
+
+      <!-- 成就 -->
+      <div class="card cg">
+        <div class="card-title">🌟 成就</div>
+        <div class="stamps">
+          <div class="stamp">📊</div>
+          <div class="stamp">🏝️</div>
+          <div class="stamp">🌙</div>
+          <div class="stamp">🏃</div>
+        </div>
+        <div style="font-size:11px;color:var(--text2);margin-top:7px;font-weight:600">已解锁 4 个成就！</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:6px;line-height:1.5;background:rgba(200,230,201,.3);border-radius:var(--radius-sm);padding:8px">
+          <strong>内脏脂肪16</strong>是最值得关注的——它跟睡眠和压力直接挂钩。你在改善睡眠，就是在减内脏脂肪 💚
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ PAGE 2：历史趋势 ════════════ -->
+<div class="page" id="p2">
+  <div style="text-align:center"><span class="date-pill">📈 数据越多，趋势越清晰</span></div>
+
+  <!-- 颜色图例说明 -->
+  <div class="card cg" style="margin-bottom:13px">
+    <div class="card-title">🎨 颜色说明</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;font-size:11px;font-weight:600">
+      <span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;border-radius:50%;background:#4CAF6F;display:inline-block"></span>体重</span>
+      <span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;border-radius:50%;background:#FF8C69;display:inline-block"></span>体脂率</span>
+      <span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;border-radius:50%;background:#87CEEB;display:inline-block"></span>肌肉率</span>
+      <span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;border-radius:50%;background:#c084fc;display:inline-block"></span>内脏脂肪</span>
+    </div>
+    <div style="margin-top:8px;font-size:11px;color:var(--text2);line-height:1.6">
+      <strong>趋势方向：</strong>体重↓ 体脂率↓ 内脏脂肪↓ = 好消息 🎉 &nbsp;|&nbsp; 肌肉率↑ = 好消息 💪
+    </div>
+  </div>
+
+  <!-- 折线图 -->
+  <div class="card cg" style="margin-bottom:13px">
+    <div class="card-title">📉 体重 · 体脂 · 肌肉 趋势</div>
+    <div class="hist-svg-wrap">
+      <svg id="trendSvg" width="100%" viewBox="0 0 600 180" preserveAspectRatio="xMidYMid meet" style="display:block"></svg>
+    </div>
+    <div class="legend" id="trendLeg"></div>
+  </div>
+
+  <div class="g2" style="margin-bottom:13px">
+    <div class="card cs">
+      <div class="card-title">🫀 内脏脂肪趋势</div>
+      <div class="hist-svg-wrap">
+        <svg id="viscSvg" width="100%" viewBox="0 0 600 120" preserveAspectRatio="xMidYMid meet" style="display:block"></svg>
+      </div>
+    </div>
+    <div class="card cc">
+      <div class="card-title">🎂 身体年龄趋势</div>
+      <div class="hist-svg-wrap">
+        <svg id="ageSvg" width="100%" viewBox="0 0 600 120" preserveAspectRatio="xMidYMid meet" style="display:block"></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- 历史数据表 -->
+  <div class="card cg">
+    <div class="card-title">📋 历史数据记录</div>
+    <div style="overflow-x:auto">
+      <table class="hist-table" id="histTable">
+        <thead><tr>
+          <th>日期</th><th>体重kg</th><th>BMI</th><th>体脂%</th><th>肌肉%</th>
+          <th>内脏脂肪</th><th>身体年龄</th><th>腰臀比</th><th>基础代谢</th>
+        </tr></thead>
+        <tbody id="histBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ PAGE 3：运动记录 ════════════ -->
+<div class="page" id="p3">
+  <div style="text-align:center"><span class="date-pill">🏃 最近运动：2026年5月17日</span></div>
+
+  <!-- 心率区间说明 -->
+  <div class="card cp" style="margin-bottom:13px">
+    <div class="card-title">🎨 心率区间颜色说明</div>
+    <div class="zone-legend">
+      <div class="zl-item" style="background:rgba(96,200,255,.15);border-color:rgba(96,200,255,.4)">
+        <div class="zl-dot" style="background:var(--z1)"></div>
+        <div class="zl-num" style="color:var(--z1)">区间1</div>
+        <div class="zl-range">&lt;138 bpm</div>
+        <div class="zl-name" style="color:#4a90b8">极低/热身</div>
+      </div>
+      <div class="zl-item" style="background:rgba(46,232,180,.15);border-color:rgba(46,232,180,.4)">
+        <div class="zl-dot" style="background:var(--z2)"></div>
+        <div class="zl-num" style="color:var(--z2)">区间2</div>
+        <div class="zl-range">139–150</div>
+        <div class="zl-name" style="color:#1a9e6e">偏低/有氧</div>
+      </div>
+      <div class="zl-item" style="background:rgba(184,240,64,.15);border-color:rgba(184,240,64,.4)">
+        <div class="zl-dot" style="background:var(--z3)"></div>
+        <div class="zl-num" style="color:#8a9a10">区间3</div>
+        <div class="zl-range">151–162</div>
+        <div class="zl-name" style="color:#6a7a10">适中/燃脂</div>
+      </div>
+      <div class="zl-item" style="background:rgba(255,176,32,.15);border-color:rgba(255,176,32,.4)">
+        <div class="zl-dot" style="background:var(--z4)"></div>
+        <div class="zl-num" style="color:var(--z4)">区间4</div>
+        <div class="zl-range">163–174</div>
+        <div class="zl-name" style="color:#c07010">偏高/无氧</div>
+      </div>
+      <div class="zl-item" style="background:rgba(255,79,106,.15);border-color:rgba(255,79,106,.4)">
+        <div class="zl-dot" style="background:var(--z5)"></div>
+        <div class="zl-num" style="color:var(--z5)">区间5</div>
+        <div class="zl-range">175+ bpm</div>
+        <div class="zl-name" style="color:#cc2040">极高/冲刺</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 运动概览 -->
+  <div class="card cg" style="margin-bottom:13px">
+    <div class="card-title">🏅 运动概览 · 室内步行（跑步机）</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px">
+      <div style="text-align:center">
+        <div style="font-size:18px;margin-bottom:3px">⏱️</div>
+        <div class="ex-hero-val">1:23:11</div>
+        <div class="ex-hero-lbl">运动时长</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:18px;margin-bottom:3px">📍</div>
+        <div class="ex-hero-val">3.88<span class="ex-hero-unit">km</span></div>
+        <div class="ex-hero-lbl">距离</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:18px;margin-bottom:3px">🔥</div>
+        <div class="ex-hero-val">439<span class="ex-hero-unit">千卡</span></div>
+        <div class="ex-hero-lbl">动态热量</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:18px;margin-bottom:3px">🏃</div>
+        <div class="ex-hero-val">21'26"<span class="ex-hero-unit">/km</span></div>
+        <div class="ex-hero-lbl">平均配速</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:18px;margin-bottom:3px">❤️</div>
+        <div class="ex-hero-val">152<span class="ex-hero-unit">bpm</span></div>
+        <div class="ex-hero-lbl">平均心率</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:18px;margin-bottom:3px">⚡</div>
+        <div>
+          <span class="diff-badge"><span class="diff-num">7</span>困难</span>
+        </div>
+        <div class="ex-hero-lbl" style="margin-top:4px">耗能等级</div>
+      </div>
+    </div>
+    <!-- 心率色段条 -->
+    <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:4px">心率分布（总时长比例）</div>
+    <div class="hr-bar-wrap">
+      <div class="hr-seg" style="width:27%;background:var(--z1)" title="区间1: 22:41"></div>
+      <div class="hr-seg" style="width:15%;background:var(--z2)" title="区间2: 12:59"></div>
+      <div class="hr-seg" style="width:15%;background:var(--z3)" title="区间3: 12:25"></div>
+      <div class="hr-seg" style="width:39%;background:var(--z4)" title="区间4: 32:36"></div>
+      <div class="hr-seg" style="width:4%;background:var(--z5)" title="区间5: 02:09"></div>
+    </div>
+    <div style="font-size:10px;color:var(--text2);margin-top:4px;font-weight:600">⬆️ 悬停色段可查看各区间时长</div>
+  </div>
+
+  <div class="row" style="margin-bottom:13px">
+    <!-- 心率区间详情 -->
+    <div class="card cs" style="flex:1.2">
+      <div class="card-title">💓 心率区间详情</div>
+      <div class="zone-bar-item">
+        <div class="zone-bar-row">
+          <span class="zone-label" style="color:var(--z1)">区间 1</span>
+          <span class="zone-time">22:41</span>
+          <div class="zone-bg"><div class="zone-fill" style="width:27%;background:var(--z1)"></div></div>
+        </div>
+        <div class="zone-bpm">&lt;138 次/分 · 热身区</div>
+      </div>
+      <div class="zone-bar-item">
+        <div class="zone-bar-row">
+          <span class="zone-label" style="color:var(--z2)">区间 2</span>
+          <span class="zone-time">12:59</span>
+          <div class="zone-bg"><div class="zone-fill" style="width:15%;background:var(--z2)"></div></div>
+        </div>
+        <div class="zone-bpm">139–150 次/分 · 有氧基础区</div>
+      </div>
+      <div class="zone-bar-item">
+        <div class="zone-bar-row">
+          <span class="zone-label" style="color:#8a9a10">区间 3</span>
+          <span class="zone-time">12:25</span>
+          <div class="zone-bg"><div class="zone-fill" style="width:15%;background:var(--z3)"></div></div>
+        </div>
+        <div class="zone-bpm">151–162 次/分 · 脂肪燃烧区</div>
+      </div>
+      <div class="zone-bar-item">
+        <div class="zone-bar-row">
+          <span class="zone-label" style="color:var(--z4)">区间 4</span>
+          <span class="zone-time">32:36</span>
+          <div class="zone-bg"><div class="zone-fill" style="width:39%;background:var(--z4)"></div></div>
+        </div>
+        <div class="zone-bpm">163–174 次/分 · 无氧耐力区 ← 最多时间</div>
+      </div>
+      <div class="zone-bar-item">
+        <div class="zone-bar-row">
+          <span class="zone-label" style="color:var(--z5)">区间 5</span>
+          <span class="zone-time">02:09</span>
+          <div class="zone-bg"><div class="zone-fill" style="width:4%;background:var(--z5)"></div></div>
+        </div>
+        <div class="zone-bpm">175+ 次/分 · 冲刺区</div>
+      </div>
+    </div>
+
+    <!-- 单段配速 -->
+    <div class="card cc" style="flex:1">
+      <div class="card-title">📏 单段数据</div>
+      <table class="lap-table">
+        <thead><tr><th>段</th><th>时长</th><th>配速</th><th>心率</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>17:53</td><td>17'53"</td><td><span style="color:var(--z1)">130</span></td></tr>
+          <tr><td>2</td><td>19:15</td><td>19'15"</td><td><span style="color:var(--z4)">166</span></td></tr>
+          <tr><td>3</td><td>19:58</td><td>19'58"</td><td><span style="color:var(--z4)">170</span></td></tr>
+          <tr><td>4</td><td>25:04</td><td>28'24"</td><td><span style="color:var(--z2)">142</span></td></tr>
+        </tbody>
+      </table>
+      <div style="margin-top:10px;background:rgba(200,230,201,.3);border-radius:var(--radius-sm);padding:9px;font-size:11px;color:var(--text2);line-height:1.6">
+        <strong>💡 解读：</strong>第1段心率偏低是热身，第2-3段进入高强度无氧区，第4段配速明显放慢但心率回落——是很好的降速恢复节奏。<br><br>
+        <strong>平均心率152</strong>处于区间3-4之间，这次运动强度很高，已达到"困难"等级 🔥
+      </div>
+    </div>
+  </div>
+
+  <!-- 运动历史 -->
+  <div class="card cg">
+    <div class="card-title">📋 运动历史记录</div>
+    <div style="overflow-x:auto">
+      <table class="lap-table" id="exTable">
+        <thead><tr><th>日期</th><th>类型</th><th>时长</th><th>距离</th><th>热量</th><th>平均心率</th><th>耗能等级</th></tr></thead>
+        <tbody id="exBody">
+          <tr>
+            <td>05/17</td><td>室内步行</td><td>1:23:11</td><td>3.88km</td>
+            <td><span style="color:var(--coral2)">439千卡</span></td>
+            <td><span style="color:var(--z4)">152bpm</span></td>
+            <td><span class="diff-badge" style="padding:2px 8px;font-size:11px"><span class="diff-num" style="font-size:14px">7</span>困难</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="text-align:center;padding:12px 0;font-size:11px;color:var(--text2)">
+      发新的Apple Watch截图给Claude，自动更新 🍃
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div style="text-align:center;font-size:11px;color:var(--text2);margin-top:14px;opacity:.7">
+  🍃 发截图给Claude即可更新数据 · 趋势比单次数值更重要
+</div>
+</div>
+
+<script>
+// ── 数据存储 ──
+const bodyData = [
+  { date:'05/17', weight:72.2, bmi:27.5, fat:45.6, muscle:31.1, visceral:16.0, bodyAge:39, whr:0.92, bmr:1256 }
+];
+
+// ── 鼓励语 ──
+const encs = [
+  "你已经迈出了最重要的一步——开始记录！数据会成为你最诚实的朋友。",
+  "睡眠改善中 🌙 这直接影响内脏脂肪，你走在正确的路上！",
+  "内脏脂肪跟压力和睡眠挂钩——修睡眠就是在减脂肪。",
+  "身体年龄39不是终点，是起点。每次记录都是向30岁靠近一步。",
+  "不需要完美，只需要继续。下一次测量会说话 📊",
+  "张远演唱会的票在等你 🎵 健康的你去看才更带劲！",
+  "今天运动了83分钟，心率区间4占了最多时间——这一次很拼！💪",
+];
+let encIdx = Math.floor(Math.random() * encs.length);
+const encEl = document.getElementById('encTxt');
+encEl.textContent = encs[encIdx];
+encEl.style.transition = 'opacity .4s';
+setInterval(() => {
+  encIdx = (encIdx + 1) % encs.length;
+  encEl.style.opacity = '0';
+  setTimeout(() => { encEl.textContent = encs[encIdx]; encEl.style.opacity = '1'; }, 420);
+}, 6000);
+
+// ── 页面切换 ──
+function switchPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+  if (id === 'p2') drawHistory();
+}
+
+// ── 历史表格 ──
+function renderHistTable() {
+  const tb = document.getElementById('histBody');
+  tb.innerHTML = bodyData.map(d => `<tr>
+    <td>${d.date}</td><td>${d.weight}</td><td>${d.bmi}</td>
+    <td>${d.fat}%</td><td>${d.muscle}%</td>
+    <td>${d.visceral}</td><td>${d.bodyAge}</td><td>${d.whr}</td><td>${d.bmr}</td>
+  </tr>`).join('');
+}
+renderHistTable();
+
+// ── 折线图通用函数 ──
+function drawLine(svgId, datasets, W=600, H=180) {
+  const svg = document.getElementById(svgId);
+  if (!svg) return;
+  const pL=40, pR=20, pT=20, pB=30;
+  const pw = W - pL - pR, ph = H - pT - pB;
+  const n = bodyData.length;
+
+  if (n < 1) { svg.innerHTML = `<text x="${W/2}" y="${H/2}" text-anchor="middle" font-size="13" fill="rgba(61,43,10,.4)" font-family="Nunito">继续添加数据 🌱</text>`; return; }
+
+  let lines = '';
+  // Grid
+  for (let i=0;i<4;i++) {
+    const y = pT + (i/3)*ph;
+    lines += `<line x1="${pL}" y1="${y}" x2="${pL+pw}" y2="${y}" stroke="rgba(61,43,10,.06)" stroke-width="1"/>`;
+  }
+
+  datasets.forEach(ds => {
+    const vals = bodyData.map(d => ds.fn(d));
+    const minV = Math.min(...vals) * 0.96;
+    const maxV = Math.max(...vals) * 1.04;
+    const px = i => n===1 ? pL+pw/2 : pL + (i/(n-1))*pw;
+    const py = v => pT + (1-(v-minV)/(maxV-minV||1))*ph;
+
+    if (n > 1) {
+      const pts = vals.map((v,i)=>`${px(i)},${py(v)}`).join(' ');
+      lines += `<polyline points="${pts}" fill="none" stroke="${ds.color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity=".9"/>`;
+    }
+    vals.forEach((v,i) => {
+      lines += `<circle cx="${px(i)}" cy="${py(v)}" r="5" fill="${ds.color}" stroke="white" stroke-width="1.5"/>`;
+      lines += `<text x="${px(i)}" y="${py(v)-10}" text-anchor="middle" font-size="10" fill="${ds.color}" font-weight="700" font-family="Nunito">${v}</text>`;
+    });
+  });
+
+  // X labels
+  bodyData.forEach((d,i) => {
+    const xp = n===1 ? pL+pw/2 : pL+(i/(n-1))*pw;
+    lines += `<text x="${xp}" y="${H-6}" text-anchor="middle" font-size="10" fill="rgba(61,43,10,.5)" font-family="Nunito">${d.date}</text>`;
+  });
+
+  if (n === 1) lines += `<text x="${pL+pw/2}" y="${H-6+14}" text-anchor="middle" font-size="10" fill="rgba(61,43,10,.35)" font-family="Nunito">继续添加数据，趋势线就会出现 🌱</text>`;
+
+  svg.innerHTML = lines;
+}
+
+function drawHistory() {
+  drawLine('trendSvg', [
+    { fn: d=>d.weight, color:'#4CAF6F', label:'体重kg' },
+    { fn: d=>d.fat, color:'#FF8C69', label:'体脂%' },
+    { fn: d=>d.muscle, color:'#87CEEB', label:'肌肉%' },
+  ], 600, 180);
+
+  drawLine('viscSvg', [
+    { fn: d=>d.visceral, color:'#c084fc', label:'内脏脂肪' },
+  ], 600, 120);
+
+  drawLine('ageSvg', [
+    { fn: d=>d.bodyAge, color:'#FF8C69', label:'身体年龄' },
+  ], 600, 120);
+
+  // legend
+  const leg = document.getElementById('trendLeg');
+  if (leg) leg.innerHTML = [
+    {c:'#4CAF6F',l:'体重'},{c:'#FF8C69',l:'体脂率'},{c:'#87CEEB',l:'肌肉率'}
+  ].map(x=>`<div class="leg-i"><div class="leg-d" style="background:${x.c}"></div>${x.l}</div>`).join('');
+}
+</script>
+</body>
+</html>
